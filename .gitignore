@@ -1,24 +1,24 @@
 # dependencies
-node_modules/
+front/node_modules/
 
 # production
-dist/
-build/
+front/dist/
+front/build/
 
 # env files
-.env
-.env.*
-!.env.example
+front/.env
+front/.env.*
+!front/.env.example
 
 # logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+front/npm-debug.log*
+front/yarn-debug.log*
+front/yarn-error.log*
+front/pnpm-debug.log*
 
 # OS
-.DS_Store
-Thumbs.db
+front/.DS_Store
+front/Thumbs.db
 
 # IDE
 .vscode/
@@ -29,4 +29,4 @@ Thumbs.db
 .eslintcache
 
 # test
-coverage/
+front/coverage/
