@@ -34,6 +34,37 @@ export async function getAgents(page = 1, pageSize = 10, port?: string, service?
   return payload;
 }
 
+function getAuthHeader() {
+  const token = localStorage.getItem('accessToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export async function getRegistrations(page = 1, pageSize = 10, status?: string) {
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (status) params.append('status', status);
+  const url = API_URL ? `${API_URL}/api/admin/registrations?${params.toString()}` : `/api/admin/registrations?${params.toString()}`;
+  const res = await fetch(url, { headers: { 'Accept': 'application/json', ...getAuthHeader() } });
+  return handleResponse<any>(res);
+}
+
+export async function login(phone: string) {
+  const url = API_URL ? `${API_URL}/api/auth/login` : `/api/auth/login`;
+  const res = await fetch(url, { method: 'POST', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) });
+  return handleResponse<any>(res);
+}
+
+export async function approveRegistration(id: string) {
+  const url = API_URL ? `${API_URL}/api/admin/registrations/${id}/approve` : `/api/admin/registrations/${id}/approve`;
+  const res = await fetch(url, { method: 'POST', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...getAuthHeader() } });
+  return handleResponse<any>(res);
+}
+
+export async function rejectRegistration(id: string) {
+  const url = API_URL ? `${API_URL}/api/admin/registrations/${id}/reject` : `/api/admin/registrations/${id}/reject`;
+  const res = await fetch(url, { method: 'POST', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...getAuthHeader() }, body: '{}' });
+  return handleResponse<any>(res);
+}
+
 export async function getAgentById(id: string, reviewsPage = 1, reviewsPageSize = 10) {
   const url = API_URL ? `${API_URL}/api/agents/${id}?reviewsPage=${reviewsPage}&reviewsPageSize=${reviewsPageSize}` : `/api/agents/${id}?reviewsPage=${reviewsPage}&reviewsPageSize=${reviewsPageSize}`;
   const res = await fetch(url);

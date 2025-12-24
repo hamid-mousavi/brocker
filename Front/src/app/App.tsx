@@ -5,6 +5,8 @@ import { BrokersListPage } from './pages/BrokersListPage';
 import { BrokerProfilePage } from './pages/BrokerProfilePage';
 import { BrokerRegistrationPage } from './pages/BrokerRegistrationPage';
 import { AdminReviewPage } from './pages/AdminReviewPage';
+import { AdminLoginPage } from './pages/AdminLoginPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 export default function App() {
   return (
@@ -16,7 +18,8 @@ export default function App() {
           <Route path="/brokers" element={<BrokersListPage />} />
           <Route path="/broker/:id" element={<BrokerProfilePage />} />
           <Route path="/register" element={<BrokerRegistrationPage />} />
-          <Route path="/admin" element={<AdminReviewPage />} />
+          <Route path="/admin" element={<ErrorBoundary><AdminReviewPage /></ErrorBoundary>} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
         </Routes>
       </div>
     </BrowserRouter>

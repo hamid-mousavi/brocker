@@ -1,24 +1,34 @@
-# dependencies
+# Frontend
+Front/node_modules/
 front/node_modules/
 
-# production
+# Frontend build
+Front/dist/
 front/dist/
+Front/build/
 front/build/
 
 # env files
+Front/.env
+Front/.env.*
 front/.env
 front/.env.*
+!Front/.env.example
 !front/.env.example
 
-# logs
+# Logs
+Front/npm-debug.log*
 front/npm-debug.log*
+Front/yarn-debug.log*
 front/yarn-debug.log*
+Front/yarn-error.log*
 front/yarn-error.log*
+Front/pnpm-debug.log*
 front/pnpm-debug.log*
 
 # OS
-front/.DS_Store
-front/Thumbs.db
+.DS_Store
+Thumbs.db
 
 # IDE
 .vscode/
@@ -29,4 +39,33 @@ front/Thumbs.db
 .eslintcache
 
 # test
+Front/coverage/
 front/coverage/
+
+# Backend (dotnet)
+Backend/**/bin/
+Backend/**/obj/
+**/*.user
+**/*.suo
+*.user
+
+# ASP.NET secrets
+**/secrets/
+*.usersecrets.json
+
+# Static uploads (persisted by docker volume)
+Backend/**/wwwroot/uploads/
+
+# Docker
+docker-compose.override.yml
+.env
+.env.*
+
+# Misc
+coverage/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Lock files (optional)
+# pnpm-lock.yaml

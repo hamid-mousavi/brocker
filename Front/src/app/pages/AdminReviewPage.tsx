@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { getRegistrations, approveRegistration, rejectRegistration } from '../../lib/api';
 
 interface PendingBroker {
   id: string;
@@ -13,44 +15,73 @@ interface PendingBroker {
 }
 
 export function AdminReviewPage() {
-  const [brokers, setBrokers] = useState<PendingBroker[]>([
-    {
-      id: 'p1',
-      name: 'احمد کریمی',
-      mobile: '09121234569',
-      ports: ['بندر عباس'],
-      services: ['واردات'],
-      experience: 7,
-      description: 'تخصص در ترخیص کالاهای صنعتی',
-      status: 'pending'
-    },
-    {
-      id: 'p2',
-      name: 'سارا رحیمی',
-      mobile: '09131234568',
-      ports: ['امام خمینی', 'بوشهر'],
-      services: ['واردات', 'صادرات'],
-      experience: 5,
-      description: 'ارائه خدمات سریع و مطمئن در ترخیص کالا',
-      status: 'pending'
+  const [brokers, setBrokers] = useState<PendingBroker[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getRegistrations(1, 50);
+      if (res.success) {
+        setBrokers((res.data || []).map((r: any) => ({
+          id: r.id,
+          name: r.fullName || r.companyName || '—',
+          mobile: r.mobile || '',
+          ports: r.customs || [],
+          services: r.goodsTypes || [],
+          experience: r.yearsOfExperience || 0,
+          description: r.description || '',
+          status: (r.status as 'pending' | 'approved' | 'rejected') || 'pending'
+        })));
+      } else {
+        setError(res.message || 'خطا در دریافت درخواست‌ها');
+      }
+    } catch (err: any) {
+      setError(err?.message || JSON.stringify(err));
+    } finally {
+      setLoading(false);
     }
-  ]);
-
-  const handleApprove = (id: string) => {
-    setBrokers(prev =>
-      prev.map(broker =>
-        broker.id === id ? { ...broker, status: 'approved' as const } : broker
-      )
-    );
   };
 
-  const handleReject = (id: string) => {
-    setBrokers(prev =>
-      prev.map(broker =>
-        broker.id === id ? { ...broker, status: 'rejected' as const } : broker
-      )
-    );
+  const handleApprove = async (id: string) => {
+    try {
+      await approveRegistration(id);
+      setBrokers(prev => prev.map(b => b.id === id ? { ...b, status: 'approved' } : b));
+    } catch (err: any) {
+      setError(err?.message || JSON.stringify(err));
+    }
   };
+
+  const handleReject = async (id: string) => {
+    try {
+      await rejectRegistration(id);
+      setBrokers(prev => prev.map(b => b.id === id ? { ...b, status: 'rejected' } : b));
+    } catch (err: any) {
+      setError(err?.message || JSON.stringify(err));
+    }
+  };
+
+  // guard + load
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    const role = localStorage.getItem('role');
+    if (!token || role !== 'Admin') {
+      navigate('/admin/login');
+      return;
+    }
+    load();
+  }, [navigate]);
+
+  if (loading) return (
+    <div className="py-12 text-center">در حال بارگذاری درخواست‌ها ...</div>
+  );
+
+  if (error) return (
+    <div className="py-12 text-center text-red-600">خطا: {error}</div>
+  );
 
   return (
     <div className="py-4 md:py-8 bg-gray-50 min-h-screen">
@@ -58,7 +89,9 @@ export function AdminReviewPage() {
         <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-8">مدیریت درخواست‌ها</h1>
 
         <div className="grid gap-4 md:gap-6">
-          {brokers.map((broker) => (
+          {brokers.length === 0 ? (
+            <div className="text-center py-12">درخواستی یافت نشد</div>
+          ) : brokers.map((broker) => (
             <div
               key={broker.id}
               className="bg-white rounded-xl shadow p-4 md:p-6 border-r-4 border-blue-500"

@@ -28,6 +28,36 @@ public class AdminController : BaseApiController
         return OkEnvelope(stats);
     }
 
+    [HttpGet("registrations")]
+    public async Task<IActionResult> Registrations([FromQuery]int page=1, [FromQuery]int pageSize=10, [FromQuery]string? status=null)
+    {
+        var (requests, total) = await _admin.GetRegistrationRequestsAsync(page, pageSize, status);
+        var meta = new PaginationMeta{ Page = page, PageSize = pageSize, Total = total };
+        return OkEnvelope(requests, null, meta);
+    }
+
+    [HttpGet("registrations/{id}")]
+    public async Task<IActionResult> Registration([FromRoute]Guid id)
+    {
+        var r = await _admin.GetRegistrationRequestByIdAsync(id);
+        if (r==null) return NotFoundEnvelope("Registration not found");
+        return OkEnvelope(r);
+    }
+
+    [HttpPost("registrations/{id}/approve")]
+    public async Task<IActionResult> ApproveRegistration([FromRoute]Guid id)
+    {
+        await _admin.ApproveRegistrationRequestAsync(id);
+        return OkEnvelope(new { id }, "Registration approved");
+    }
+
+    [HttpPost("registrations/{id}/reject")]
+    public async Task<IActionResult> RejectRegistration([FromRoute]Guid id, [FromBody] object? body)
+    {
+        await _admin.RejectRegistrationRequestAsync(id);
+        return OkEnvelope(new { id }, "Registration rejected");
+    }
+
     [HttpPost("agents/{id}/approve")]
     public async Task<IActionResult> Approve([FromRoute]Guid id)
     {

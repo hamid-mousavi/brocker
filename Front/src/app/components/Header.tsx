@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Ship, Menu } from 'lucide-react';
 import { useState } from 'react';
 
@@ -25,9 +25,14 @@ export function Header() {
             <Link to="/register" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
               ثبت‌نام ترخیص‌کار
             </Link>
-            <Link to="/admin" className="text-gray-500 hover:text-gray-700 transition text-sm">
-              مدیریت
-            </Link>
+            {localStorage.getItem('accessToken') && localStorage.getItem('role') === 'Admin' ? (
+              <button
+                onClick={() => { localStorage.removeItem('accessToken'); localStorage.removeItem('role'); window.location.href = '/admin/login'; }}
+                className="text-gray-700 hover:text-red-600 transition text-sm"
+              >خروج</button>
+            ) : (
+              <Link to="/admin/login" className="text-gray-500 hover:text-gray-700 transition text-sm">مدیریت</Link>
+            )}
           </nav>
 
           {/* Mobile Menu Button */}
@@ -63,13 +68,20 @@ export function Header() {
             >
               ثبت‌نام ترخیص‌کار
             </Link>
-            <Link
-              to="/admin"
-              className="block text-gray-500 hover:text-gray-700 transition text-sm py-2"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              مدیریت
-            </Link>
+            {localStorage.getItem('accessToken') && localStorage.getItem('role') === 'Admin' ? (
+              <button
+                onClick={() => { localStorage.removeItem('accessToken'); localStorage.removeItem('role'); window.location.href = '/'; }}
+                className="block text-gray-700 hover:text-red-600 transition text-sm py-2"
+              >خروج</button>
+            ) : (
+              <Link
+                to="/admin/login"
+                className="block text-gray-500 hover:text-gray-700 transition text-sm py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                مدیریت
+              </Link>
+            )}
           </nav>
         )}
       </div>
