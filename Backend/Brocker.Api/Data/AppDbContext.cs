@@ -12,6 +12,8 @@ public class AppDbContext : DbContext
     public DbSet<Review> Reviews { get; set; } = null!;
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<AgentAnalytics> AgentAnalytics { get; set; } = null!;
+    public DbSet<RegistrationRequest> RegistrationRequests { get; set; } = null!;
+    public DbSet<RegistrationAttachment> RegistrationAttachments { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -20,6 +22,12 @@ public class AppDbContext : DbContext
             .HasOne<Agent>()
             .WithMany(a => a.Reviews)
             .HasForeignKey(r => r.AgentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RegistrationAttachment>()
+            .HasOne<RegistrationRequest>()
+            .WithMany(r => r.Attachments)
+            .HasForeignKey(a => a.RegistrationRequestId)
             .OnDelete(DeleteBehavior.Cascade);
 
         base.OnModelCreating(modelBuilder);

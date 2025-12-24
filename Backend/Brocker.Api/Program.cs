@@ -60,7 +60,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Localhost", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000").AllowAnyHeader().AllowAnyMethod();
+        policy.WithOrigins("http://localhost:5173", "https://localhost:5173", "http://localhost:3000", "https://localhost:3000").AllowAnyHeader().AllowAnyMethod();
     });
 });
 
@@ -129,7 +129,17 @@ using (var scope = app.Services.CreateScope())
                     }
                     else
                     {
-                        logger.LogInformation("Database contains tables but no EF migrations history; skipping automatic Migrate to avoid conflicts.");
+                        // If there are pending migrations that add new objects we can attempt to apply them.
+                        var pending = db.Database.GetPendingMigrations();
+                        if (pending != null && pending.Any())
+                        {
+                            logger.LogInformation("Found pending migrations and no migrations history; attempting to apply pending migrations.");
+                            db.Database.Migrate();
+                        }
+                        else
+                        {
+                            logger.LogInformation("Database contains tables but no EF migrations history; skipping automatic Migrate to avoid conflicts.");
+                        }
                     }
                 }
             }
@@ -151,7 +161,15 @@ using (var scope = app.Services.CreateScope())
         logger.LogWarning(ex, "Database initialize failed; proceed to seed if possible.");
     }
 
-    DbSeeder.Seed(db);
+    try
+    {
+        DbSeeder.Seed(db);
+    }
+    catch(Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "Seeding failed (DB may be unavailable yet). Will continue without seeding.");
+    }
 }
 
 if (app.Environment.IsDevelopment())
@@ -161,6 +179,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("Localhost");
+
+app.UseStaticFiles(); // serve uploaded files from wwwroot/uploads
 
 app.UseMiddleware<Brocker.Api.Middleware.ExceptionMiddleware>();
 

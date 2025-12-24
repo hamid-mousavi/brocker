@@ -5,22 +5,62 @@ import { UserPlus, CheckCircle } from 'lucide-react';
 export function BrokerRegistrationPage() {
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+
   const [formData, setFormData] = useState({
     name: '',
+    companyName: '',
+    legalType: 'individual', // 'individual' | 'company'
     mobile: '',
+    officePhone: '',
+    homePhone: '',
+    address: '',
+    latitude: '',
+    longitude: '',
     ports: [] as string[],
     services: [] as string[],
     experience: '',
     description: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, send data to backend
-    setSubmitted(true);
-    setTimeout(() => {
-      navigate('/');
-    }, 3000);
+    setError(null);
+    setLoading(true);
+
+    try {
+      const fd = new FormData();
+      fd.append('FullName', formData.name);
+      fd.append('CompanyName', formData.companyName);
+      fd.append('LegalType', formData.legalType === 'company' ? '1' : '0');
+      fd.append('Mobile', formData.mobile);
+      if (formData.officePhone) fd.append('OfficePhone', formData.officePhone);
+      if (formData.homePhone) fd.append('HomePhone', formData.homePhone);
+      if (formData.address) fd.append('Address', formData.address);
+      if (formData.latitude) fd.append('Latitude', formData.latitude);
+      if (formData.longitude) fd.append('Longitude', formData.longitude);
+      fd.append('YearsOfExperience', formData.experience);
+      fd.append('Description', formData.description);
+      formData.ports.forEach(p => fd.append('Customs', p));
+      formData.services.forEach(s => fd.append('GoodsTypes', s));
+
+      files.forEach(f => fd.append('Attachments', f));
+
+      const url = '/api/agents/register';
+      const res = await fetch(url, { method: 'POST', body: fd });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || !payload.success) {
+        setError(payload?.message || 'خطا در ارسال فرم');
+      } else {
+        setSubmitted(true);
+      }
+    } catch (err:any) {
+      setError(err?.message ?? JSON.stringify(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePortToggle = (port: string) => {
@@ -87,6 +127,29 @@ export function BrokerRegistrationPage() {
               />
             </div>
 
+            {/* Company Name */}
+            <div>
+              <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">
+                نام شرکت (در صورت حقوقی)
+              </label>
+              <input
+                type="text"
+                value={formData.companyName}
+                onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+                placeholder="مثال: شرکت ترخیص نمونه"
+              />
+            </div>
+
+            {/* Legal Type */}
+            <div>
+              <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">نوع شخصیت حقوقی</label>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2"><input type="radio" name="legal" checked={formData.legalType==='individual'} onChange={()=>setFormData(prev=>({...prev, legalType:'individual'}))}/> حقیقی</label>
+                <label className="flex items-center gap-2"><input type="radio" name="legal" checked={formData.legalType==='company'} onChange={()=>setFormData(prev=>({...prev, legalType:'company'}))}/> حقوقی</label>
+              </div>
+            </div>
+
             {/* Mobile */}
             <div>
               <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">
@@ -103,13 +166,25 @@ export function BrokerRegistrationPage() {
               />
             </div>
 
+            {/* Office & Home phones */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">شماره دفتر</label>
+                <input type="tel" value={formData.officePhone} onChange={(e)=>setFormData(prev=>({...prev, officePhone:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" placeholder="نمونه: 021-12345678" />
+              </div>
+              <div>
+                <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">شماره منزل</label>
+                <input type="tel" value={formData.homePhone} onChange={(e)=>setFormData(prev=>({...prev, homePhone:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" placeholder="نمونه: 021-87654321" />
+              </div>
+            </div>
+
             {/* Ports */}
             <div>
               <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">
                 بنادر فعال *
               </label>
               <div className="flex flex-wrap gap-2 md:gap-3">
-                {['بندر عباس', 'امام خمینی', 'بوشهر'].map((port) => (
+                {['گمرک غرب', 'گمرک جنوب', 'گمرک اصفهان'].map((port) => (
                   <button
                     key={port}
                     type="button"
@@ -132,7 +207,7 @@ export function BrokerRegistrationPage() {
                 خدمات *
               </label>
               <div className="flex flex-wrap gap-2 md:gap-3">
-                {['واردات', 'صادرات', 'کالای ویژه'].map((service) => (
+                {['الکترونیک', 'لباس', 'قطعات خودرو'].map((service) => (
                   <button
                     key={service}
                     type="button"
@@ -165,6 +240,30 @@ export function BrokerRegistrationPage() {
               />
             </div>
 
+            {/* Address */}
+            <div>
+              <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">آدرس</label>
+              <input type="text" value={formData.address} onChange={(e)=>setFormData(prev=>({...prev,address:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" placeholder="آدرس کامل" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">عرض جغرافیایی (اختیاری)</label>
+                <input type="text" value={formData.latitude} onChange={(e)=>setFormData(prev=>({...prev,latitude:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" placeholder="مثال: 35.6892" />
+              </div>
+              <div>
+                <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">طول جغرافیایی (اختیاری)</label>
+                <input type="text" value={formData.longitude} onChange={(e)=>setFormData(prev=>({...prev,longitude:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" placeholder="مثال: 51.3890" />
+              </div>
+            </div>
+
+            {/* Attachments */}
+            <div>
+              <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">آپلود مدارک و تصاویر</label>
+              <input type="file" multiple onChange={(e)=>setFiles(Array.from(e.target.files||[]))} className="w-full" />
+              <p className="text-xs text-gray-500 mt-1">می‌توانید چند فایل شامل تصاویر یا مدارک آپلود کنید (jpg, png, pdf).</p>
+            </div>
+
             {/* Description */}
             <div>
               <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">
@@ -180,13 +279,18 @@ export function BrokerRegistrationPage() {
               />
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white px-4 md:px-6 py-3 md:py-4 rounded-lg hover:bg-blue-700 transition font-semibold text-sm md:text-base"
-            >
-              ثبت درخواست
-            </button>
+            {/* Error / Loading */}
+            {error && <div className="text-red-600 text-sm">{error}</div>}
+            <div className="flex gap-3 items-center">
+              <button
+                type="submit"
+                disabled={loading}
+                className={`flex-1 bg-blue-600 text-white px-4 md:px-6 py-3 md:py-4 rounded-lg hover:bg-blue-700 transition font-semibold text-sm md:text-base ${loading?"opacity-60":""}`}
+              >
+                {loading? 'در حال ارسال...' : 'ثبت درخواست'}
+              </button>
+              <button type="button" onClick={()=>{setFiles([]); setFormData({name:'',companyName:'',legalType:'individual',mobile:'',officePhone:'',homePhone:'',address:'',latitude:'',longitude:'',ports:[],services:[],experience:'',description:''})}} className="bg-gray-100 text-gray-700 px-4 py-3 rounded-lg">پاک کردن</button>
+            </div>
           </form>
         </div>
       </div>

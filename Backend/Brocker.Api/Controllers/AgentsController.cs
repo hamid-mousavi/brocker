@@ -12,9 +12,9 @@ public class AgentsController : BaseApiController
     public AgentsController(IAgentService agentService){ _agentService = agentService; }
 
     [HttpGet]
-    public async Task<IActionResult> List([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? query = null, [FromQuery] string? city = null)
+    public async Task<IActionResult> List([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? query = null, [FromQuery] string? city = null, [FromQuery] string? port = null, [FromQuery] string? service = null)
     {
-        var (agents, total) = await _agentService.GetAgentsAsync(page, pageSize, query, city);
+        var (agents, total) = await _agentService.GetAgentsAsync(page, pageSize, query, city, port, service);
         var meta = new PaginationMeta{ Page = page, PageSize = pageSize, Total = total };
         return OkEnvelope(agents, null, meta);
     }

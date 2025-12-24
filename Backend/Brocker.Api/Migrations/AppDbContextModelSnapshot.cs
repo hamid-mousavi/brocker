@@ -129,6 +129,96 @@ namespace Brocker.Api.Migrations
                     b.ToTable("Licenses");
                 });
 
+            modelBuilder.Entity("Brocker.Api.Models.RegistrationAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("RegistrationRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RegistrationRequestId");
+
+                    b.ToTable("RegistrationAttachments");
+                });
+
+            modelBuilder.Entity("Brocker.Api.Models.RegistrationRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<List<string>>("Customs")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<List<string>>("GoodsTypes")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("HomePhone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("LegalType")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Mobile")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OfficePhone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("YearsOfExperience")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RegistrationRequests");
+                });
+
             modelBuilder.Entity("Brocker.Api.Models.Review", b =>
                 {
                     b.Property<Guid>("Id")
@@ -205,6 +295,15 @@ namespace Brocker.Api.Migrations
                         .HasForeignKey("AgentId");
                 });
 
+            modelBuilder.Entity("Brocker.Api.Models.RegistrationAttachment", b =>
+                {
+                    b.HasOne("Brocker.Api.Models.RegistrationRequest", null)
+                        .WithMany("Attachments")
+                        .HasForeignKey("RegistrationRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Brocker.Api.Models.Review", b =>
                 {
                     b.HasOne("Brocker.Api.Models.Agent", null)
@@ -221,6 +320,11 @@ namespace Brocker.Api.Migrations
                     b.Navigation("Licenses");
 
                     b.Navigation("Reviews");
+                });
+
+            modelBuilder.Entity("Brocker.Api.Models.RegistrationRequest", b =>
+                {
+                    b.Navigation("Attachments");
                 });
 #pragma warning restore 612, 618
         }

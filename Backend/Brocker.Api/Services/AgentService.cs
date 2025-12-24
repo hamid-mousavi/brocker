@@ -14,12 +14,16 @@ public class AgentService : IAgentService
         _db = db;
     }
 
-    public async Task<(IEnumerable<AgentSummaryDto> agents, int total)> GetAgentsAsync(int page, int pageSize, string? query = null, string? city = null)
+    public async Task<(IEnumerable<AgentSummaryDto> agents, int total)> GetAgentsAsync(int page, int pageSize, string? query = null, string? city = null, string? port = null, string? service = null)
     {
         var q = _db.Agents.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(query)) q = q.Where(a => a.FullName.Contains(query) || a.CompanyName.Contains(query));
         if (!string.IsNullOrWhiteSpace(city)) q = q.Where(a => a.City == city);
+
+        // filter by customs (port) or goods types (service) if provided
+        if (!string.IsNullOrWhiteSpace(port)) q = q.Where(a => a.Customs.Any(c => c == port) || a.GoodsTypes.Any(g => g == port));
+        if (!string.IsNullOrWhiteSpace(service)) q = q.Where(a => a.GoodsTypes.Any(g => g == service) || a.Customs.Any(c => c == service));
 
         var total = await q.CountAsync();
 

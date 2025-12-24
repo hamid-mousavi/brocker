@@ -4,7 +4,7 @@ namespace Brocker.Api.Services;
 
 public interface IAgentService
 {
-    Task<(IEnumerable<AgentSummaryDto> agents, int total)> GetAgentsAsync(int page, int pageSize, string? query = null, string? city = null);
+    Task<(IEnumerable<AgentSummaryDto> agents, int total)> GetAgentsAsync(int page, int pageSize, string? query = null, string? city = null, string? port = null, string? service = null);
     Task<AgentDetailDto?> GetAgentByIdAsync(Guid id, int reviewsPage = 1, int reviewsPageSize = 10);
     Task<AgentDashboardDto> GetAgentDashboardAsync(Guid agentId);
 }

@@ -4,6 +4,7 @@ import { Search } from 'lucide-react';
 import { BrokerCard } from '../components/BrokerCard';
 import { mockBrokers } from '../data/mockBrokers';
 import { Port, ServiceType, Broker } from '../types';
+import { useAgents } from '../hooks/useAgents';
 
 export function BrokersListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -13,7 +14,7 @@ const port = searchParams.get('port') as Port | null;
   const [selectedService, setSelectedService] = useState<ServiceType | ''>(service || '');
 
   // Use backend when VITE_API_URL is present, otherwise fallback to mock
-  const { agents, loading, meta, error } = useAgents(1, 20, selectedPort || undefined, undefined);
+  const { agents, loading, meta, error } = useAgents(1, 20, selectedPort || undefined, selectedService || undefined);
   const [filteredBrokers, setFilteredBrokers] = useState<Broker[]>(agents);
 
   useEffect(() => {
@@ -49,9 +50,9 @@ const port = searchParams.get('port') as Port | null;
                 className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
               >
                 <option value="">همه بنادر</option>
-                <option value="بندر عباس">بندر عباس</option>
-                <option value="امام خمینی">امام خمینی</option>
-                <option value="بوشهر">بوشهر</option>
+                <option value="گمرک غرب">گمرک غرب</option>
+                <option value="گمرک جنوب">گمرک جنوب</option>
+                <option value="گمرک اصفهان">گمرک اصفهان</option>
               </select>
             </div>
 
@@ -69,9 +70,9 @@ const port = searchParams.get('port') as Port | null;
                 className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
               >
                 <option value="">همه خدمات</option>
-                <option value="واردات">واردات</option>
-                <option value="صادرات">صادرات</option>
-                <option value="کالای ویژه">کالای ویژه</option>
+                <option value="الکترونیک">الکترونیک</option>
+                <option value="لباس">لباس</option>
+                <option value="قطعات خودرو">قطعات خودرو</option>
               </select>
             </div>
 

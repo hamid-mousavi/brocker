@@ -23,18 +23,26 @@ services:
       - db
     ports:
       - "5000:80"
+    volumes:
+      - api_uploads:/app/wwwroot/uploads
 
   front:
     build:
       context: ./Front
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=http://api
+        VITE_API_URL: ""
     environment:
-      - VITE_API_URL=http://api
+      - VITE_API_URL=
     depends_on:
       - api
     ports:
       - "5173:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 volumes:
   postgres_data:
+  api_uploads:
