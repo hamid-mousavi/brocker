@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Brocker.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+72d4e3f782c694d6a39448d47bb93a7375501779")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+42a8d762b5ddc1763fb17018b172eca48285711a")]
 [assembly: System.Reflection.AssemblyProductAttribute("Brocker.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Brocker.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

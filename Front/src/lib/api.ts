@@ -15,7 +15,23 @@ export async function getAgents(page = 1, pageSize = 10, port?: string, service?
 
   const url = API_URL ? `${API_URL}/api/agents?${params.toString()}` : `/api/agents?${params.toString()}`;
   const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-  return handleResponse(res);
+  const payload = await handleResponse<any>(res);
+
+  // map backend shape to frontend Broker shape
+  if (payload.success && Array.isArray(payload.data)) {
+    payload.data = payload.data.map((a: any) => ({
+      id: a.id,
+      name: a.fullName ?? a.companyName ?? '',
+      ports: a.customs ?? [],
+      services: a.goodsTypes ?? [],
+      experience: a.yearsOfExperience ?? 0,
+      verified: a.isVerified ?? false,
+      mobile: a.mobile ?? '',
+      description: a.bio ?? ''
+    }));
+  }
+
+  return payload;
 }
 
 export async function getAgentById(id: string, reviewsPage = 1, reviewsPageSize = 10) {

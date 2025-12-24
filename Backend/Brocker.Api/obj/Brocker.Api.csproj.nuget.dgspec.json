@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "/src/Backend/Brocker.Api/Brocker.Api.csproj": {}
+    "/workspaces/brocker/Backend/Brocker.Api/Brocker.Api.csproj": {}
   },
   "projects": {
-    "/src/Backend/Brocker.Api/Brocker.Api.csproj": {
+    "/workspaces/brocker/Backend/Brocker.Api/Brocker.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/src/Backend/Brocker.Api/Brocker.Api.csproj",
+        "projectUniqueName": "/workspaces/brocker/Backend/Brocker.Api/Brocker.Api.csproj",
         "projectName": "Brocker.Api",
-        "projectPath": "/src/Backend/Brocker.Api/Brocker.Api.csproj",
-        "packagesPath": "/root/.nuget/packages/",
-        "outputPath": "/src/Backend/Brocker.Api/obj/",
+        "projectPath": "/workspaces/brocker/Backend/Brocker.Api/Brocker.Api.csproj",
+        "packagesPath": "/home/codespace/.nuget/packages/",
+        "outputPath": "/workspaces/brocker/Backend/Brocker.Api/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/root/.nuget/NuGet/NuGet.Config"
+          "/home/codespace/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -92,7 +92,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.101/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.100/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

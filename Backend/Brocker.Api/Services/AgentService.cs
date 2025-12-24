@@ -16,6 +16,15 @@ public class AgentService : IAgentService
 
     public async Task<(IEnumerable<AgentSummaryDto> agents, int total)> GetAgentsAsync(int page, int pageSize, string? query = null, string? city = null, string? port = null, string? service = null)
     {
+        // normalize inputs: guard against "null"/"undefined" strings from clients and invalid paging values
+        if (page <= 0) page = 1;
+        if (pageSize <= 0) pageSize = 10;
+        string? Normalize(string? s) => string.IsNullOrWhiteSpace(s) || s == "null" || s == "undefined" ? null : s;
+        query = Normalize(query);
+        city = Normalize(city);
+        port = Normalize(port);
+        service = Normalize(service);
+
         var q = _db.Agents.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(query)) q = q.Where(a => a.FullName.Contains(query) || a.CompanyName.Contains(query));
