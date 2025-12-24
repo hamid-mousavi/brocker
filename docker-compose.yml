@@ -1,0 +1,40 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: brocker
+      POSTGRES_PASSWORD: brocker_pwd
+      POSTGRES_DB: brockerdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+  api:
+    build:
+      context: ./Backend/Brocker.Api
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=db;Database=brockerdb;Username=brocker;Password=brocker_pwd
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Jwt__Key=dev_super_secret_key_replace_this
+    depends_on:
+      - db
+    ports:
+      - "5000:80"
+
+  front:
+    build:
+      context: ./Front
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://api
+    environment:
+      - VITE_API_URL=http://api
+    depends_on:
+      - api
+    ports:
+      - "5173:80"
+volumes:
+  postgres_data:

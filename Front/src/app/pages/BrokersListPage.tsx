@@ -7,27 +7,18 @@ import { Port, ServiceType, Broker } from '../types';
 
 export function BrokersListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [filteredBrokers, setFilteredBrokers] = useState<Broker[]>(mockBrokers);
-  
-  const port = searchParams.get('port') as Port | null;
+const port = searchParams.get('port') as Port | null;
   const service = searchParams.get('service') as ServiceType | null;
-  
   const [selectedPort, setSelectedPort] = useState<Port | ''>(port || '');
   const [selectedService, setSelectedService] = useState<ServiceType | ''>(service || '');
 
+  // Use backend when VITE_API_URL is present, otherwise fallback to mock
+  const { agents, loading, meta, error } = useAgents(1, 20, selectedPort || undefined, undefined);
+  const [filteredBrokers, setFilteredBrokers] = useState<Broker[]>(agents);
+
   useEffect(() => {
-    let filtered = mockBrokers;
-
-    if (selectedPort) {
-      filtered = filtered.filter(broker => broker.ports.includes(selectedPort));
-    }
-
-    if (selectedService) {
-      filtered = filtered.filter(broker => broker.services.includes(selectedService));
-    }
-
-    setFilteredBrokers(filtered);
-  }, [selectedPort, selectedService]);
+    if (!loading && agents) setFilteredBrokers(agents);
+  }, [loading, agents]);
 
   const handleFilterChange = (newPort: Port | '', newService: ServiceType | '') => {
     const params = new URLSearchParams();
@@ -96,7 +87,11 @@ export function BrokersListPage() {
         </div>
 
         {/* Brokers Grid */}
-        {filteredBrokers.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-12 md:py-16">در حال بارگذاری ...</div>
+        ) : error ? (
+          <div className="text-center py-12 md:py-16 text-red-600">خطا در بارگذاری: {error}</div>
+        ) : filteredBrokers.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {filteredBrokers.map((broker) => (
               <BrokerCard key={broker.id} broker={broker} />
