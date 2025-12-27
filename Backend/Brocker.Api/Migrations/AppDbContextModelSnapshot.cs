@@ -75,6 +75,14 @@ namespace Brocker.Api.Migrations
                     b.Property<int>("YearsOfExperience")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Mobile")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<List<string>>("PhoneNumbers")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
                     b.HasKey("Id");
 
                     b.ToTable("Agents");
@@ -151,6 +159,30 @@ namespace Brocker.Api.Migrations
                     b.HasIndex("RegistrationRequestId");
 
                     b.ToTable("RegistrationAttachments");
+                });
+
+            modelBuilder.Entity("Brocker.Api.Models.RegistrationPhone", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RegistrationRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RegistrationRequestId");
+
+                    b.ToTable("RegistrationPhones");
                 });
 
             modelBuilder.Entity("Brocker.Api.Models.RegistrationRequest", b =>
@@ -325,6 +357,7 @@ namespace Brocker.Api.Migrations
             modelBuilder.Entity("Brocker.Api.Models.RegistrationRequest", b =>
                 {
                     b.Navigation("Attachments");
+                    b.Navigation("Phones");
                 });
 #pragma warning restore 612, 618
         }

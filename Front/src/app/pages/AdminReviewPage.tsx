@@ -29,7 +29,7 @@ export function AdminReviewPage() {
         setBrokers((res.data || []).map((r: any) => ({
           id: r.id,
           name: r.fullName || r.companyName || '—',
-          mobile: r.mobile || '',
+          mobile: r.mobile || (r.phones && r.phones.length>0 ? r.phones[0].number : '') || '',
           ports: r.customs || [],
           services: r.goodsTypes || [],
           experience: r.yearsOfExperience || 0,

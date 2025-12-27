@@ -5,6 +5,7 @@ import { UserPlus, CheckCircle, Trash2, Plus } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { forwardGeocode, reverseGeocode } from '../../lib/geocode';
 
 // Fix leaflet's default icon path issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -16,7 +17,7 @@ L.Icon.Default.mergeOptions({
 
 function LocationMarker() {
   const map = useMapEvents({
-    click(e) {
+    click(e: any) {
       const { lat, lng } = e.latlng;
       // set form data by dispatching a custom event
       const ev = new CustomEvent('location-selected', { detail: { latitude: lat, longitude: lng } });
@@ -32,17 +33,29 @@ export function BrokerRegistrationPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
 
   useEffect(()=>{
-    function handler(e:any){
+    async function handler(e:any){
       const { latitude, longitude } = e.detail || {};
-      if (latitude && longitude) {
+      if (latitude !== undefined && longitude !== undefined) {
         setFormData(prev => ({ ...prev, latitude: String(latitude), longitude: String(longitude) }));
+        // try reverse geocoding to fill address
+        try {
+          setGeoLoading(true);
+          const addr = await reverseGeocode(latitude, longitude);
+          if (addr) setFormData(prev => ({ ...prev, address: addr }));
+        } finally { setGeoLoading(false); }
+        // pan map if created
+        if (mapInstance) {
+          try { mapInstance.setView([Number(latitude), Number(longitude)], 13); } catch {}
+        }
       }
     }
     window.addEventListener('location-selected', handler as any);
     return ()=> window.removeEventListener('location-selected', handler as any);
-  }, []);
+  }, [mapInstance]);
 
   type PhoneEntry = { id: string; type: 'mobile' | 'office' | 'home' | 'fax' | 'other'; number: string };
 
@@ -50,6 +63,9 @@ export function BrokerRegistrationPage() {
     name: '',
     companyName: '',
     legalType: 'individual', // 'individual' | 'company'
+    mobile: '',
+    officePhone: '',
+    homePhone: '',
     phones: [{ id: crypto.randomUUID(), type: 'mobile' as const, number: '' }] as PhoneEntry[],
     address: '',
     latitude: '',
@@ -79,6 +95,9 @@ export function BrokerRegistrationPage() {
       if (mobilePhone) fd.append('Mobile', mobilePhone);
       if (officePhone) fd.append('OfficePhone', officePhone);
       if (homePhone) fd.append('HomePhone', homePhone);
+
+      // include full phones list as JSON for server-side persistence
+      try { fd.append('PhonesJson', JSON.stringify(formData.phones)); } catch {}
 
       if (formData.address) fd.append('Address', formData.address);
       if (formData.latitude) fd.append('Latitude', formData.latitude);
@@ -300,21 +319,39 @@ export function BrokerRegistrationPage() {
             {/* Address + Map */}
             <div>
               <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">آدرس</label>
-              <input type="text" value={formData.address} onChange={(e)=>setFormData(prev=>({...prev,address:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base mb-3" placeholder="آدرس کامل" />
+              <div className="flex gap-2 mb-3">
+                <input type="text" value={formData.address} onChange={(e)=>setFormData(prev=>({...prev,address:e.target.value}))} className="flex-1 px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" placeholder="آدرس کامل" />
+                <button type="button" onClick={async ()=>{
+                  if (!formData.address) return;
+                  try { setGeoLoading(true); const res = await forwardGeocode(formData.address);
+                    if (res) {
+                      setFormData(prev=>({ ...prev, latitude: String(res.latitude), longitude: String(res.longitude), address: res.display_name || prev.address }));
+                      if (mapInstance) try { mapInstance.setView([res.latitude, res.longitude], 13); } catch {}
+                    } else {
+                      setError('آدرس پیدا نشد');
+                      setTimeout(()=>setError(null), 3000);
+                    }
+                  } finally { setGeoLoading(false); }
+                }} className="px-3 py-2 rounded bg-gray-100 text-gray-700 text-sm">پیدا کردن روی نقشه</button>
+              </div>
 
               <div className="mb-2 flex items-center gap-2">
                 <button type="button" onClick={async ()=>{
                   if (!navigator.geolocation) return; 
-                  navigator.geolocation.getCurrentPosition(pos => {
+                  navigator.geolocation.getCurrentPosition(async pos => {
                     const { latitude, longitude } = pos.coords;
                     setFormData(prev => ({ ...prev, latitude: String(latitude), longitude: String(longitude) }));
+                    const addr = await reverseGeocode(latitude, longitude);
+                    if (addr) setFormData(prev=>({ ...prev, address: addr }));
+                    if (mapInstance) try { mapInstance.setView([latitude, longitude], 13); } catch {}
                   });
                 }} className="px-3 py-2 rounded bg-blue-600 text-white text-sm">استفاده از موقعیت فعلی</button>
                 <div className="text-xs text-gray-500">برای انتخاب دقیق، روی نقشه کلیک کنید</div>
+                {geoLoading && <div className="text-xs text-gray-500">در حال یافتن آدرس...</div>}
               </div>
 
               <div className="h-64 rounded overflow-hidden mb-3">
-                <MapContainer center={[35.6892,51.3890]} zoom={6} style={{ height: '100%', width: '100%' }}>
+                <MapContainer whenCreated={(m: any)=>setMapInstance(m)} center={[35.6892,51.3890]} zoom={6} style={{ height: '100%', width: '100%' }}>
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                   <LocationMarker />
                   {formData.latitude && formData.longitude && (
@@ -394,7 +431,7 @@ export function BrokerRegistrationPage() {
               >
                 {loading? 'در حال ارسال...' : 'ثبت درخواست'}
               </button>
-              <button type="button" onClick={()=>{setFiles([]); setFormData({name:'',companyName:'',legalType:'individual',mobile:'',officePhone:'',homePhone:'',address:'',latitude:'',longitude:'',ports:[],services:[],experience:'',description:''})}} className="bg-gray-100 text-gray-700 px-4 py-3 rounded-lg">پاک کردن</button>
+              <button type="button" onClick={()=>{setFiles([]); setFormData({name:'',companyName:'',legalType:'individual',mobile:'',officePhone:'',homePhone:'',phones:[{ id: crypto.randomUUID(), type: 'mobile', number: '' }],address:'',latitude:'',longitude:'',ports:[],services:[],experience:'',description:''})}} className="bg-gray-100 text-gray-700 px-4 py-3 rounded-lg">پاک کردن</button>
             </div>
           </form>
         </div>

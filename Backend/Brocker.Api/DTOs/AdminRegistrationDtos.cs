@@ -20,6 +20,8 @@ namespace Brocker.Api.DTOs
         public string Url { get; set; } = string.Empty;
     }
 
+    public class RegistrationPhoneDto { public string Type { get; set; } = string.Empty; public string Number { get; set; } = string.Empty; }
+
     public class RegistrationRequestDto : RegistrationRequestSummaryDto
     {
         public string Address { get; set; } = string.Empty;
@@ -30,5 +32,6 @@ namespace Brocker.Api.DTOs
         public int YearsOfExperience { get; set; }
         public string Description { get; set; } = string.Empty;
         public List<RegistrationAttachmentDto> Attachments { get; set; } = new();
+        public List<RegistrationPhoneDto> Phones { get; set; } = new();
     }
 }

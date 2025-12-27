@@ -14,6 +14,8 @@ public class AgentSummaryDto
     public List<string> Customs { get; set; } = new();
     public List<string> GoodsTypes { get; set; } = new();
     public bool IsVerified { get; set; }
+    public string Mobile { get; set; } = string.Empty;
+    public List<string> PhoneNumbers { get; set; } = new();
 }
 
 public class AgentDetailDto : AgentSummaryDto

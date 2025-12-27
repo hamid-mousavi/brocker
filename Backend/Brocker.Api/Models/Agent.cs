@@ -13,6 +13,10 @@ public class Agent
     public List<string> GoodsTypes { get; set; } = new();
     public bool IsVerified { get; set; }
 
+    // Contact
+    public string Mobile { get; set; } = string.Empty;
+    public List<string> PhoneNumbers { get; set; } = new();
+
     // Profile
     public string Bio { get; set; } = string.Empty;
     public string WorkingHours { get; set; } = string.Empty;
@@ -51,9 +55,18 @@ public class RegistrationRequest
     public string Description { get; set; } = string.Empty;
 
     public List<RegistrationAttachment> Attachments { get; set; } = new();
+    public List<RegistrationPhone> Phones { get; set; } = new();
 
     public string Status { get; set; } = "pending";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class RegistrationPhone
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid RegistrationRequestId { get; set; }
+    public string Type { get; set; } = string.Empty; // mobile|office|home|fax|other
+    public string Number { get; set; } = string.Empty;
 }
 
 public class RegistrationAttachment

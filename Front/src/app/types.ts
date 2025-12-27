@@ -8,6 +8,7 @@ export interface Broker {
   mobile: string;
   description: string;
   whatsapp?: string;
+  phoneNumbers?: string[];
 }
 
 export type Port = 'بندر عباس' | 'امام خمینی' | 'بوشهر';

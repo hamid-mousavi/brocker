@@ -26,8 +26,7 @@ export async function getAgents(page = 1, pageSize = 10, port?: string, service?
       services: a.goodsTypes ?? [],
       experience: a.yearsOfExperience ?? 0,
       verified: a.isVerified ?? false,
-      mobile: a.mobile ?? '',
-      description: a.bio ?? ''
+      mobile: a.mobile ?? '',      phoneNumbers: a.phoneNumbers ?? [],      description: a.bio ?? ''
     }));
   }
 

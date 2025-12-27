@@ -36,10 +36,69 @@ public class AgentService : IAgentService
 
         var total = await q.CountAsync();
 
-        var items = await q.OrderByDescending(a => a.RatingAverage)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(a => new AgentSummaryDto {
+        List<AgentSummaryDto> items;
+        try
+        {
+            items = await q.OrderByDescending(a => a.RatingAverage)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new AgentSummaryDto {
+                    Id = a.Id,
+                    FullName = a.FullName,
+                    CompanyName = a.CompanyName,
+                    City = a.City,
+                    YearsOfExperience = a.YearsOfExperience,
+                    RatingAverage = a.RatingAverage,
+                    NumberOfReviews = a.NumberOfReviews,
+                    Customs = a.Customs.Take(5).ToList(),
+                    GoodsTypes = a.GoodsTypes.Take(5).ToList(),
+                    IsVerified = a.IsVerified,
+                    Mobile = a.Mobile,
+                    PhoneNumbers = a.PhoneNumbers
+                }).ToListAsync();
+        }
+        catch (Npgsql.PostgresException ex) when (ex.SqlState == "42703" || ex.Message.Contains("does not exist"))
+        {
+            // Column missing in DB (migration not applied) - return a safe projection without Mobile/PhoneNumbers
+            items = await q.OrderByDescending(a => a.RatingAverage)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new AgentSummaryDto {
+                    Id = a.Id,
+                    FullName = a.FullName,
+                    CompanyName = a.CompanyName,
+                    City = a.City,
+                    YearsOfExperience = a.YearsOfExperience,
+                    RatingAverage = a.RatingAverage,
+                    NumberOfReviews = a.NumberOfReviews,
+                    Customs = a.Customs.Take(5).ToList(),
+                    GoodsTypes = a.GoodsTypes.Take(5).ToList(),
+                    IsVerified = a.IsVerified,
+                    Mobile = string.Empty,
+                    PhoneNumbers = new List<string>()
+                }).ToListAsync();
+        }
+
+        return (items, total);
+    }
+
+    public async Task<AgentDetailDto?> GetAgentByIdAsync(Guid id, int reviewsPage = 1, int reviewsPageSize = 10)
+    {
+        try
+        {
+            var a = await _db.Agents.Include(x => x.Reviews).Include(x => x.Licenses).Include(x => x.Analytics).FirstOrDefaultAsync(x => x.Id == id);
+            if (a == null) return null;
+
+            var reviews = a.Reviews.OrderByDescending(r => r.CreatedAt).Skip((reviewsPage - 1) * reviewsPageSize).Take(reviewsPageSize)
+                .Select(r => new ReviewDto { Id = r.Id, ReviewerName = r.ReviewerName, Rating = r.Rating, Comment = r.Comment, CreatedAt = r.CreatedAt }).ToList();
+
+            var breakdown = new RatingBreakdownDto();
+            foreach (var r in a.Reviews)
+            {
+                switch (r.Rating) { case 5: breakdown.Stars5++; break; case 4: breakdown.Stars4++; break; case 3: breakdown.Stars3++; break; case 2: breakdown.Stars2++; break; case 1: breakdown.Stars1++; break; }
+            }
+
+            var detail = new AgentDetailDto {
                 Id = a.Id,
                 FullName = a.FullName,
                 CompanyName = a.CompanyName,
@@ -47,47 +106,75 @@ public class AgentService : IAgentService
                 YearsOfExperience = a.YearsOfExperience,
                 RatingAverage = a.RatingAverage,
                 NumberOfReviews = a.NumberOfReviews,
-                Customs = a.Customs.Take(5).ToList(),
-                GoodsTypes = a.GoodsTypes.Take(5).ToList(),
-                IsVerified = a.IsVerified
-            }).ToListAsync();
+                Customs = a.Customs,
+                GoodsTypes = a.GoodsTypes,
+                IsVerified = a.IsVerified,
+                Mobile = a.Mobile,
+                PhoneNumbers = a.PhoneNumbers,
+                Bio = a.Bio,
+                WorkingHours = a.WorkingHours,
+                Licenses = a.Licenses.Where(l => l.IsPublic).Select(l => new LicenseDto { Id = l.Id, Title = l.Title, IsVerified = l.IsVerified }).ToList(),
+                Reviews = reviews,
+                RatingBreakdown = breakdown
+            };
 
-        return (items, total);
-    }
-
-    public async Task<AgentDetailDto?> GetAgentByIdAsync(Guid id, int reviewsPage = 1, int reviewsPageSize = 10)
-    {
-        var a = await _db.Agents.Include(x => x.Reviews).Include(x => x.Licenses).Include(x => x.Analytics).FirstOrDefaultAsync(x => x.Id == id);
-        if (a == null) return null;
-
-        var reviews = a.Reviews.OrderByDescending(r => r.CreatedAt).Skip((reviewsPage-1)*reviewsPageSize).Take(reviewsPageSize)
-            .Select(r => new ReviewDto{Id=r.Id, ReviewerName=r.ReviewerName, Rating=r.Rating, Comment=r.Comment, CreatedAt=r.CreatedAt}).ToList();
-
-        var breakdown = new RatingBreakdownDto();
-        foreach(var r in a.Reviews)
-        {
-            switch(r.Rating){ case 5: breakdown.Stars5++; break; case 4: breakdown.Stars4++; break; case 3: breakdown.Stars3++; break; case 2: breakdown.Stars2++; break; case 1: breakdown.Stars1++; break; }
+            return detail;
         }
+        catch (Npgsql.PostgresException ex) when (ex.SqlState == "42703" || ex.Message.Contains("does not exist"))
+        {
+            // Column missing - fetch safe projection and assemble dto manually
+            var basic = await _db.Agents
+                .Where(x => x.Id == id)
+                .Select(x => new {
+                    x.Id,
+                    x.FullName,
+                    x.CompanyName,
+                    x.City,
+                    x.YearsOfExperience,
+                    x.RatingAverage,
+                    x.NumberOfReviews,
+                    x.Customs,
+                    x.GoodsTypes,
+                    x.IsVerified,
+                    x.Bio,
+                    x.WorkingHours
+                }).FirstOrDefaultAsync();
 
-        var detail = new AgentDetailDto {
-            Id = a.Id,
-            FullName = a.FullName,
-            CompanyName = a.CompanyName,
-            City = a.City,
-            YearsOfExperience = a.YearsOfExperience,
-            RatingAverage = a.RatingAverage,
-            NumberOfReviews = a.NumberOfReviews,
-            Customs = a.Customs,
-            GoodsTypes = a.GoodsTypes,
-            IsVerified = a.IsVerified,
-            Bio = a.Bio,
-            WorkingHours = a.WorkingHours,
-            Licenses = a.Licenses.Where(l=>l.IsPublic).Select(l=>new LicenseDto{Id=l.Id, Title=l.Title, IsVerified=l.IsVerified}).ToList(),
-            Reviews = reviews,
-            RatingBreakdown = breakdown
-        };
+            if (basic == null) return null;
 
-        return detail;
+            var reviews = await _db.Reviews.Where(r => r.AgentId == id).OrderByDescending(r => r.CreatedAt)
+                .Skip((reviewsPage - 1) * reviewsPageSize).Take(reviewsPageSize)
+                .Select(r => new ReviewDto { Id = r.Id, ReviewerName = r.ReviewerName, Rating = r.Rating, Comment = r.Comment, CreatedAt = r.CreatedAt }).ToListAsync();
+
+            var licenses = await _db.Agents.Where(a => a.Id == id).SelectMany(a => a.Licenses.Where(l => l.IsPublic)).Select(l => new LicenseDto { Id = l.Id, Title = l.Title, IsVerified = l.IsVerified }).ToListAsync();
+
+            var allReviews = await _db.Reviews.Where(r => r.AgentId == id).ToListAsync();
+            var breakdown = new RatingBreakdownDto();
+            foreach (var r in allReviews)
+            {
+                switch (r.Rating) { case 5: breakdown.Stars5++; break; case 4: breakdown.Stars4++; break; case 3: breakdown.Stars3++; break; case 2: breakdown.Stars2++; break; case 1: breakdown.Stars1++; break; }
+            }
+
+            return new AgentDetailDto {
+                Id = basic.Id,
+                FullName = basic.FullName,
+                CompanyName = basic.CompanyName,
+                City = basic.City,
+                YearsOfExperience = basic.YearsOfExperience,
+                RatingAverage = basic.RatingAverage,
+                NumberOfReviews = basic.NumberOfReviews,
+                Customs = basic.Customs,
+                GoodsTypes = basic.GoodsTypes,
+                IsVerified = basic.IsVerified,
+                Mobile = string.Empty,
+                PhoneNumbers = new List<string>(),
+                Bio = basic.Bio,
+                WorkingHours = basic.WorkingHours,
+                Licenses = licenses,
+                Reviews = reviews,
+                RatingBreakdown = breakdown
+            };
+        }
     }
 
     public async Task<AgentDashboardDto> GetAgentDashboardAsync(Guid agentId)

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Ship, Phone } from 'lucide-react';
 import { BrokerCard } from '../components/BrokerCard';
-import { mockBrokers } from '../data/mockBrokers';
+import { useAgents } from '../hooks/useAgents';
 import { Port, ServiceType } from '../types';
 
 export function HomePage() {
@@ -17,8 +17,8 @@ export function HomePage() {
     navigate(`/brokers?${params.toString()}`);
   };
 
-  // Show first 3 brokers as preview
-  const previewBrokers = mockBrokers.slice(0, 3);
+  // Show first 3 brokers as preview (from backend when available)
+  const { agents: previewBrokers, loading: previewLoading } = useAgents(1, 3);
 
   return (
     <div>
@@ -96,9 +96,15 @@ export function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {previewBrokers.map((broker) => (
-              <BrokerCard key={broker.id} broker={broker} />
-            ))}
+            {previewLoading ? (
+              <div className="col-span-full text-center py-6">در حال بارگذاری ...</div>
+            ) : previewBrokers && previewBrokers.length > 0 ? (
+              previewBrokers.map((broker) => (
+                <BrokerCard key={broker.id} broker={broker} />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-6 text-gray-500">ترخیص‌کاری یافت نشد</div>
+            )}
           </div>
         </div>
       </section>

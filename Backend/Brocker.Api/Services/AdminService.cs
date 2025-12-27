@@ -55,7 +55,7 @@ public class AdminService : IAdminService
 
     public async Task<RegistrationRequestDto?> GetRegistrationRequestByIdAsync(Guid id)
     {
-        var r = await _db.RegistrationRequests.Include(rr=>rr.Attachments).FirstOrDefaultAsync(x=>x.Id==id);
+        var r = await _db.RegistrationRequests.Include(rr=>rr.Attachments).Include(rr=>rr.Phones).FirstOrDefaultAsync(x=>x.Id==id);
         if (r==null) return null;
         return new RegistrationRequestDto {
             Id = r.Id,
@@ -71,7 +71,8 @@ public class AdminService : IAdminService
             GoodsTypes = r.GoodsTypes,
             YearsOfExperience = r.YearsOfExperience,
             Description = r.Description,
-            Attachments = r.Attachments.Select(a=>new RegistrationAttachmentDto{ Id=a.Id, FileName=a.FileName, Url=a.Url}).ToList()
+            Attachments = r.Attachments.Select(a=>new RegistrationAttachmentDto{ Id=a.Id, FileName=a.FileName, Url=a.Url}).ToList(),
+            Phones = r.Phones.Select(p=> new RegistrationPhoneDto{ Type = p.Type, Number = p.Number }).ToList()
         };
     }
 
@@ -92,6 +93,8 @@ public class AdminService : IAdminService
             Bio = r.Description,
             IsVerified = false,
             IsApproved = true,
+            Mobile = r.Mobile,
+            PhoneNumbers = r.Phones?.Select(p=>p.Number).Where(n=>!string.IsNullOrWhiteSpace(n)).ToList() ?? new List<string>(),
             CreatedAt = DateTime.UtcNow
         };
 

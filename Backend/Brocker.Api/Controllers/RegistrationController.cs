@@ -61,6 +61,21 @@ public class RegistrationController : BaseApiController
             }
         }
 
+        // parse phones JSON if present
+        if (!string.IsNullOrWhiteSpace(req.PhonesJson))
+        {
+            try
+            {
+                var phones = System.Text.Json.JsonSerializer.Deserialize<List<PhoneDto>>(req.PhonesJson ?? "[]") ?? new List<PhoneDto>();
+                foreach (var p in phones)
+                {
+                    if (string.IsNullOrWhiteSpace(p.Number)) continue;
+                    reg.Phones.Add(new RegistrationPhone { Type = p.Type ?? string.Empty, Number = p.Number ?? string.Empty });
+                }
+            }
+            catch { /* ignore malformed phones */ }
+        }
+
         _db.RegistrationRequests.Add(reg);
         await _db.SaveChangesAsync();
 
@@ -88,4 +103,9 @@ public class RegistrationCreateRequest
     public string? Description { get; set; }
 
     public IFormFileCollection? Attachments { get; set; }
+
+    // JSON array of { type: string, number: string }
+    public string? PhonesJson { get; set; }
 }
+
+public class PhoneDto { public string? Type { get; set; } public string? Number { get; set; } }
