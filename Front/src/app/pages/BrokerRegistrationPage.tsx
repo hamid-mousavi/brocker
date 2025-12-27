@@ -1,6 +1,30 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, CheckCircle } from 'lucide-react';
+import { UserPlus, CheckCircle, Trash2, Plus } from 'lucide-react';
+
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix leaflet's default icon path issue
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+function LocationMarker() {
+  const map = useMapEvents({
+    click(e) {
+      const { lat, lng } = e.latlng;
+      // set form data by dispatching a custom event
+      const ev = new CustomEvent('location-selected', { detail: { latitude: lat, longitude: lng } });
+      window.dispatchEvent(ev as any);
+    }
+  });
+  return null;
+}
 
 export function BrokerRegistrationPage() {
   const navigate = useNavigate();
@@ -9,13 +33,24 @@ export function BrokerRegistrationPage() {
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
 
+  useEffect(()=>{
+    function handler(e:any){
+      const { latitude, longitude } = e.detail || {};
+      if (latitude && longitude) {
+        setFormData(prev => ({ ...prev, latitude: String(latitude), longitude: String(longitude) }));
+      }
+    }
+    window.addEventListener('location-selected', handler as any);
+    return ()=> window.removeEventListener('location-selected', handler as any);
+  }, []);
+
+  type PhoneEntry = { id: string; type: 'mobile' | 'office' | 'home' | 'fax' | 'other'; number: string };
+
   const [formData, setFormData] = useState({
     name: '',
     companyName: '',
     legalType: 'individual', // 'individual' | 'company'
-    mobile: '',
-    officePhone: '',
-    homePhone: '',
+    phones: [{ id: crypto.randomUUID(), type: 'mobile' as const, number: '' }] as PhoneEntry[],
     address: '',
     latitude: '',
     longitude: '',
@@ -35,12 +70,20 @@ export function BrokerRegistrationPage() {
       fd.append('FullName', formData.name);
       fd.append('CompanyName', formData.companyName);
       fd.append('LegalType', formData.legalType === 'company' ? '1' : '0');
-      fd.append('Mobile', formData.mobile);
-      if (formData.officePhone) fd.append('OfficePhone', formData.officePhone);
-      if (formData.homePhone) fd.append('HomePhone', formData.homePhone);
+
+      // map phone entries into backend fields
+      const mobilePhone = formData.phones.find(p => p.type === 'mobile')?.number || formData.phones[0]?.number || '';
+      const officePhone = formData.phones.find(p => p.type === 'office')?.number || '';
+      const homePhone = formData.phones.find(p => p.type === 'home')?.number || '';
+
+      if (mobilePhone) fd.append('Mobile', mobilePhone);
+      if (officePhone) fd.append('OfficePhone', officePhone);
+      if (homePhone) fd.append('HomePhone', homePhone);
+
       if (formData.address) fd.append('Address', formData.address);
       if (formData.latitude) fd.append('Latitude', formData.latitude);
       if (formData.longitude) fd.append('Longitude', formData.longitude);
+
       fd.append('YearsOfExperience', formData.experience);
       fd.append('Description', formData.description);
       formData.ports.forEach(p => fd.append('Customs', p));
@@ -166,15 +209,29 @@ export function BrokerRegistrationPage() {
               />
             </div>
 
-            {/* Office & Home phones */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">شماره دفتر</label>
-                <input type="tel" value={formData.officePhone} onChange={(e)=>setFormData(prev=>({...prev, officePhone:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" placeholder="نمونه: 021-12345678" />
-              </div>
-              <div>
-                <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">شماره منزل</label>
-                <input type="tel" value={formData.homePhone} onChange={(e)=>setFormData(prev=>({...prev, homePhone:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" placeholder="نمونه: 021-87654321" />
+            {/* Phone numbers (dynamic) */}
+            <div>
+              <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">شماره‌های تماس</label>
+              <div className="space-y-2">
+                {formData.phones.map((p, idx) => (
+                  <div key={p.id} className="flex items-center gap-2">
+                    <select value={p.type} onChange={(e)=>setFormData(prev=>({ ...prev, phones: prev.phones.map(ph => ph.id === p.id ? { ...ph, type: e.target.value as any } : ph) }))} className="px-2 py-2 rounded border">
+                      <option value="mobile">موبایل</option>
+                      <option value="office">دفتر</option>
+                      <option value="home">منزل</option>
+                      <option value="fax">فکس</option>
+                      <option value="other">سایر</option>
+                    </select>
+                    <input type="tel" value={p.number} onChange={(e)=>setFormData(prev=>({ ...prev, phones: prev.phones.map(ph => ph.id === p.id ? { ...ph, number: e.target.value } : ph) }))} placeholder="مثال: +989121234567" className="flex-1 px-3 py-2 rounded border" />
+                    <button type="button" onClick={()=>setFormData(prev=>({ ...prev, phones: prev.phones.filter(ph=>ph.id !== p.id) }))} className="p-2 rounded bg-red-100 text-red-600">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+
+                <button type="button" onClick={()=>setFormData(prev=>({ ...prev, phones: [...prev.phones, { id: crypto.randomUUID(), type: 'other', number: '' }] }))} className="inline-flex items-center gap-2 px-3 py-2 rounded bg-gray-100 text-gray-700">
+                  <Plus className="w-4 h-4" /> افزودن شماره تلفن
+                </button>
               </div>
             </div>
 
@@ -240,28 +297,76 @@ export function BrokerRegistrationPage() {
               />
             </div>
 
-            {/* Address */}
+            {/* Address + Map */}
             <div>
               <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">آدرس</label>
-              <input type="text" value={formData.address} onChange={(e)=>setFormData(prev=>({...prev,address:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" placeholder="آدرس کامل" />
+              <input type="text" value={formData.address} onChange={(e)=>setFormData(prev=>({...prev,address:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base mb-3" placeholder="آدرس کامل" />
+
+              <div className="mb-2 flex items-center gap-2">
+                <button type="button" onClick={async ()=>{
+                  if (!navigator.geolocation) return; 
+                  navigator.geolocation.getCurrentPosition(pos => {
+                    const { latitude, longitude } = pos.coords;
+                    setFormData(prev => ({ ...prev, latitude: String(latitude), longitude: String(longitude) }));
+                  });
+                }} className="px-3 py-2 rounded bg-blue-600 text-white text-sm">استفاده از موقعیت فعلی</button>
+                <div className="text-xs text-gray-500">برای انتخاب دقیق، روی نقشه کلیک کنید</div>
+              </div>
+
+              <div className="h-64 rounded overflow-hidden mb-3">
+                <MapContainer center={[35.6892,51.3890]} zoom={6} style={{ height: '100%', width: '100%' }}>
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <LocationMarker />
+                  {formData.latitude && formData.longitude && (
+                    <Marker position={[Number(formData.latitude), Number(formData.longitude)]} />
+                  )}
+                </MapContainer>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">عرض جغرافیایی (اختیاری)</label>
+                  <input type="text" value={formData.latitude} onChange={(e)=>setFormData(prev=>({...prev,latitude:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" placeholder="مثال: 35.6892" />
+                </div>
+                <div>
+                  <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">طول جغرافیایی (اختیاری)</label>
+                  <input type="text" value={formData.longitude} onChange={(e)=>setFormData(prev=>({...prev,longitude:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" placeholder="مثال: 51.3890" />
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">عرض جغرافیایی (اختیاری)</label>
-                <input type="text" value={formData.latitude} onChange={(e)=>setFormData(prev=>({...prev,latitude:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" placeholder="مثال: 35.6892" />
-              </div>
-              <div>
-                <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">طول جغرافیایی (اختیاری)</label>
-                <input type="text" value={formData.longitude} onChange={(e)=>setFormData(prev=>({...prev,longitude:e.target.value}))} className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" placeholder="مثال: 51.3890" />
-              </div>
-            </div>
-
-            {/* Attachments */}
+            {/* Attachments (dropzone) */}
             <div>
               <label className="block text-right text-gray-700 mb-2 text-sm md:text-base">آپلود مدارک و تصاویر</label>
-              <input type="file" multiple onChange={(e)=>setFiles(Array.from(e.target.files||[]))} className="w-full" />
-              <p className="text-xs text-gray-500 mt-1">می‌توانید چند فایل شامل تصاویر یا مدارک آپلود کنید (jpg, png, pdf).</p>
+
+              <div
+                onDragOver={(e)=>e.preventDefault()}
+                onDrop={(e)=>{ e.preventDefault(); const dropped = Array.from(e.dataTransfer?.files||[]); setFiles(prev=>[...prev, ...dropped]); }}
+                className="border-2 border-dashed rounded-lg p-4 text-center bg-white cursor-pointer"
+                onClick={()=>{ document.getElementById('file-input')?.click(); }}
+              >
+                <div className="text-gray-500">فایل‌ها را اینجا بکشید یا کلیک کنید</div>
+                <div className="text-xs text-gray-400 mt-1">(jpg, png, pdf) حداکثر 5 فایل</div>
+                <input id="file-input" type="file" multiple className="hidden" onChange={(e)=>setFiles(prev=>[...prev, ...Array.from(e.target.files||[])])} />
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {files.map((f, idx) => (
+                  <div key={idx} className="flex items-center gap-3 bg-gray-50 p-2 rounded">
+                    {f.type.startsWith('image/') ? (
+                      <img src={URL.createObjectURL(f)} alt={f.name} className="w-16 h-16 object-cover rounded" />
+                    ) : (
+                      <div className="w-16 h-16 flex items-center justify-center bg-gray-100 rounded text-xs">{f.name.split('.').pop()}</div>
+                    )}
+                    <div className="flex-1 text-sm">
+                      <div className="font-medium">{f.name}</div>
+                      <div className="text-xs text-gray-500">{Math.round(f.size/1024)} KB</div>
+                    </div>
+                    <button type="button" onClick={()=>setFiles(prev=>prev.filter((_,i)=>i!==idx))} className="p-2 rounded bg-red-100 text-red-600"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+
             </div>
 
             {/* Description */}
